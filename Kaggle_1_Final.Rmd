@@ -1,0 +1,814 @@
+---
+title: "Kaggle challenge 1"
+author: "Nicholas Scholl, Rachel Orzechowski, Sara Knight"
+date: "2023-09-19"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Library and Data Loading
+
+```{r loading libraries}
+
+library(tidyverse)
+library(tinytex)
+
+```
+Data is rows of birds that are located in Hawaii.  Columns are sites or areas that the bird has been spotted.  The data entries themselves are frequency or amount of birds that have been located in this specific location.
+
+In this chunk, we are loading in the data as CSV's and they turn into data frames in R.  We add row.names = 1 to remove the name of the birds as a column for calculations later on  
+
+```{r loading data}
+
+setwd("C:/Users/saram/Documents/CIS 678/Kaggle_Competition_1")
+
+
+training_set <- read.csv("training_set.csv", row.names = 1)
+test_set <- read.csv("test_set.csv", row.names = 1)
+
+sample_submission <- read.csv("sample_submission.csv", row.names = 1)
+
+```
+
+## Exploratory Analysis
+
+Here we are checking to find NA's in the training and test data sets to see if we need to remove them for data pre-processing. We didn't find any NAs.
+
+```{r finding NAs}
+
+#colSums(is.na(training_set))
+#colSums(is.na(test_set))
+
+```
+
+We check the dimensions of our data frames to confirm that they should be 85X14382 and 85X6009 for the respective test and training data sets.
+
+```{r Pre-processing}
+
+ dim(training_set)
+ dim(test_set)
+
+```
+
+We verify that our data frame has the necessary variables for our calculations, this includes making sure all numeric entries are integers.
+
+```{r finding variable types}
+
+#str(training_set)
+#str(test_set)
+
+``` 
+
+This block is checking to see if any blanks exist in the columns of our data set and temporarily set them to NA's so that we can do something about them in the later blocks.  We use for loops in this block to iterate through all the columns in our data set.
+
+This code was used from geeks for geeks with the following link: https://www.geeksforgeeks.org/data-preprocessing-in-r/
+
+```{r changing blanks into NAs}
+
+columns <- colnames(training_set)
+
+for (column in columns) {
+  training_set[[column]] <- ifelse(trimws(training_set[[column]]) == "",
+                           NA, training_set[[column]])
+}
+
+
+columns <- colnames(test_set)
+
+for (column in columns) {
+  test_set[[column]] <- ifelse(trimws(test_set[[column]]) == "",
+                           NA, test_set[[column]])
+}
+
+```
+
+Here we check again after setting blanks to NAs to see if NA's present in both data sets.  We get the sum of the NA's to get the totals for the entire data set to verify the entire data sets. Since we get zero, no need to drop them!
+
+```{r rechecking NAs}
+
+sum(is.na(training_set))
+sum(is.na(test_set))
+
+
+```
+This is to provide a quick summary of our sums for birds, it can display the minimum, mean, and maximum to quickly get a feel on the sheer number of birds present in the data set.
+
+```{r summary of data}
+
+#summary(training_set)
+
+#summary(test_set)
+
+```
+
+## Distances
+
+In this chunk, we calculate Manhattan distance, we make it a function so we can use it later, this code was used from geeks for geeks at the following URL:https://www.geeksforgeeks.org/how-to-calculate-manhattan-distance-in-r/
+
+```{r Manhattan Distance}
+
+manhattanDistance <- function(vect1, vect2){
+     dist <- abs(vect1 - vect2)
+     dist <- sum(dist)
+     return(dist)
+}
+
+```
+
+In this chunk we calculated the Minkowski Distance, we make it a function so we can use it later.
+
+```{r Minkowski Distance}
+# Minkowski Distance
+
+minkowski <- function (x,y){
+  dist <- ((sum(abs(x - y)^1.5))^(1/1.5))
+  return(dist)
+}
+
+```
+
+In this chunk we calculated the Cosine Distance, we make it a function so we can use it later.
+
+```{r Cosine Distance}
+
+cosine_distance <- function(a,b){
+  dist <- sum(a*b)/sqrt(sum(a^2)*sum(b^2))
+  return(1- dist)
+}
+
+```
+
+### Analysis of Distance
+
+In the beginning we were having some success with the Manhattan Distance and we stayed there for awhile. We did switch to Euclidean distance for a while, but were getting worse results. Finally after some advice we tried Cosine distance. We weren't getting good results until we reworked the normalization of the data.  Our final best result was Cosine distance.
+
+Personally I think that either Manhattan or Cosine would be appropriate for this question based on the scores we received.
+
+## Data Preprocessing
+
+Here, is where we pre-process our data, we utilize unit norm this takes each entry and divides by the column sum of the total entries.  This makes each entry of a column a percentage of each column.  Next, we use log scaling to continue to normalize the data into something that we can use for our calculations.  We make this a function to call and then run it on both our test and train data set.  
+We tried different combinations of these functions and found this one was this worked the best.
+
+```{r attempt at unit norm}
+
+  unit_norm <- function(x) {
+    #x[x > 10] <- 10
+    #apply(x, 2, function(x) x / sum(x))
+    apply(x, 2, function(x) log(1+x))
+ }
+
+ norm_training <- unit_norm(training_set)
+ norm_test <- unit_norm(test_set)
+
+```
+
+### Analysis of Pre-processing
+
+We tried a lot of different types of normalization. We started with just normalizing the data with x / sum(x) and log(1+x). Eventually we got help and we tried it with the suggestion of clipping the data. We tried every type of combination these normalizations to the point where we tried x / sum(x) and then clipping. In the end the best combination we were able to come up with was Cosine distance with a normalization of log(1+x).
+
+I think the best normalization for this project would be log(x+1). The other normalizations weren't working well for us no matter the combination.
+
+## Recomender Algorithm
+
+```{r Recomender function version 8}
+
+# calculate distance between vector x of length n and all columns in A of dimensions m x n 
+ RecommendByAbsoluteNN <- function(A, x, k){
+
+   # calculate absolute distance between vector x and each column in A
+   distances <- apply(A, 2, function(y) cosine_distance(y, x))
+   
+   # find the indices of the k smallest distances
+   training_nn <- A[,order(distances)<= k]
+   # subset A for those indices
+   
+   # now do what you're doing, but on the subset, not on A
+   # for (i in 1:ncol(training_nn)) training_nn[,i] <- training_nn[,i]*(1/i)   
+   # multiply by some norm like .99
+   # We didn't weight the data because we ran out of time.
+
+   training_nn <- rowSums(training_nn)
+ 
+   # don't recommend any values which are non-zero in the test sample
+   training_nn[which(x != 0)] <- 0
+ 
+   # generate 5 recommendations
+   recommendations <- rep(0, length(x))
+ 
+   # select top 5 non-zeros in "training_nn" that are zero in "x" 
+   # and set them equal to 1
+   recommendations[order(training_nn, decreasing = TRUE)[1:5]] <- 1
+ 
+   return(recommendations)
+ }
+ 
+ recommendations <- pbapply::pbapply(norm_test, 2, function(x)  FUN =  RecommendByAbsoluteNN(norm_training, x, 25))
+
+```
+### Analysis of Recomender Algorithm
+
+This is the final version of the RecommendByAbsoluteNN algorithm. We tried to implement weights into the function, but they didn't seem help our score. At one point we did get some help on implementing weights, but we didn't have time to include them. 
+
+I think that weights would definitely help create better model. I do wonder how it would effect the K value if at all.
+
+```{r making and reshaping the recomendation}
+
+ rownames(recommendations) <- rownames(test_set)
+ submission <- reshape2::melt(recommendations)
+ head(submission)
+
+```
+
+```{r writing the recomendation}
+
+ head(sample_submission)
+ sample_submission$Expected <- submission$value
+ write.csv(sample_submission, "submission_cosine_log_25.csv", row.names = FALSE)
+
+```
+
+## K Optimization
+
+This was a brute force attempt to try to find the best k. In the end we went with something else.
+
+```{r}
+
+# submission$value2 <- test_set1$value 
+# 
+# unique(submission$value)
+# 
+# unique(submission$value2)
+# 
+# counterror = 0
+# 
+# for (i in 1:nrow(submission)){
+#   if((submission[i,3] == 1 && submission[i,4] == 0)){
+#     counterror = counterror + 1
+#   }
+# }
+# 
+# countright = 0
+# 
+# for (i in 1:nrow(submission)){
+#   if((submission[i,3] == 1 & submission[i,4] >= 1)|| (submission[i,3] == 0 & submission[i,4] ==0)){
+#     countright = countright + 1
+#   }
+# }
+# 
+# 
+# missed_pos = 0
+# 
+# for (i in 1:nrow(submission)){
+#   if((submission[i,3] == 0 && submission[i,4] >= 1)){
+#     missed_pos = missed_pos + 1
+#   }
+# }
+
+```
+
+### Analysis of Optimizing K
+
+Finding k was by far the hardest part of this project. At first we started at 5 emulating the idea of the 5 Hawaiian Islands. Then we moved up to a somewhat arbitrary 9 gave us our best results. Moving up a little bit to an 11 gave us worse results and we stayed a 9 for a while. 
+
+We didn't seem to go anywhere for a while and we had this idea of being more systematic in our approach to finding the best K. Our idea was that our K could be anywhere between 1 and 85. We decided to start testing half way between 1 and 84 at 44 and test it there. We realized that this would be a brute force approach and we didn't want to waste all of our submissions on that. So we took the training set and split into a training and test set. We kept the original test and copied it. 
+
+With the copy set we created a loop that would set five random non-zero column values to zero. We would then test the original set against the recommended copy and see how we did. The idea was to test the middle, middle + 1, and middle - 1 and move in the direction on the best results. To determine which k had a better out come we created a loop that looked at three values: counterror, countright, and missed_pos. Counterror counted the number of times when our algorithm should have made a recommendation, but didn't. Countright is when our algorithm made a recommendation when it should or didn't make a recommendation when it shouldn't. Finally missed_pos was when we should have made a recommendation, but didn't. So we would be looking for high number for countright and low numbers for counterror and missed_pos. We modified this from the idea of the binary search algorithm. From this algorithm we found a K value of 65.
+
+
+## Cross-Validation
+
+This code chunk is checking accuracy for K =1 to K = X this is done by utilizing a for loop.  This is calculated as a percentage.  We are using K-fold cross validation for our chosen method. This is was chosen method because it iterates over over a set number of K groups randomly.  We feel this provides the most accuracy for our Manhattan distance by using mean squared error on the observation that was held out and give an average for our performance.
+
+```{r Cross-validation attempt 1}
+
+# dif <- recommendations == train1 #create matrix of T/F for test set vs recommendation
+# 
+# i=1                          # declaration to initiate for loop
+# k.optm=1                     # declaration to initiate for loop
+# 
+# 
+# for (i in 1:30){ 
+#   #have a function calcs error for any train set and test set matrix
+#   # call that function for each unique set1, set2...set5
+#   # average the errors together
+#     knn.mod <-  pbapply::pbapply(train1, 2, function(x) RecommendByAbsoluteNN(set1, x, i))
+#     k.optm[i] <- 100 * sum(dif)/length(recommendations)
+#     #i = i + 1
+#     k= i
+#     cat(k,'=',k.optm[i],'\n')       # to print % accuracy 
+# }
+
+
+# plot(k.optm, type="b", xlab="K- Value",ylab="Accuracy level")  # to plot % accuracy wrt to k-value.  We are plotting the result of our K-fold cross validation to provide visual feedback.
+```
+
+The code above was an attempt a creating a loop to cross validate the model. The idea would be that it would loop through numbers for K (in this case 1 through 30) and test our model out to see the percentage of accuracy at each K. Ultimately this loop would take an incredibly long time to run. When we made the range smaller it seemed to be spitting out the same number again and again. In hindsight this code might have worked, but there might have not been much change in accuracy between K = 1 and K=2.
+
+```{r randomly shuffling the data set}
+ 
+ set.seed(123)
+ 
+ training_rand <- training_set[, sample(1:ncol(training_set)) ]
+
+```
+
+```{r this spitting it up into 5 different sets}
+ train1 <- training_set[,c(1:2966)]
+ train2 <- training_set[,c(2967:5932)]
+ train3 <- training_set[,c(5933:8899)]
+ train4 <- training_set[,c(8900:11866)]
+ train5 <- training_set[,c(11867:14832)]
+```
+
+```{r creating a training set for CV}
+
+ set1 <- cbind(train2, train3, train4, train5)
+ set2 <- cbind(train1, train3, train4, train5)
+ set3 <- cbind(train1, train2, train4, train5)
+ set4 <- cbind(train1, train2, train3, train5)
+ set5 <- cbind(train1, train2, train3, train4)
+
+```
+
+```{r creating a dataframe to hold accuracy levels}
+
+CV_df <- data.frame(matrix(ncol = 11, nrow = 5))
+
+colnames(CV_df)[1] ="k_20"
+colnames(CV_df)[2] ="k_21"
+colnames(CV_df)[3] ="k_22"
+colnames(CV_df)[4] ="k_23"
+colnames(CV_df)[5] ="k_24"
+colnames(CV_df)[6] ="k_25"
+colnames(CV_df)[7] ="k_26"
+colnames(CV_df)[8] ="k_27"
+colnames(CV_df)[9] ="k_28"
+colnames(CV_df)[10] ="k_29"
+colnames(CV_df)[11] ="k_30"
+
+```
+
+```{r testing with train1 test1 part 1}
+
+set.seed(123)
+
+   test1<-train1
+   for(i in 1:ncol(train1)){
+     for (j in 1:5){
+       fun <- runif(1, min= 1, max = 85)
+       while(train1[fun,i]==0){
+         fun <- runif(1, min= 1, max = 85)
+       }
+       test1[fun,i]=0
+     }
+   }
+# A loop finding random non-zero entries in the columns and changing them to zero.
+
+```
+
+```{r testing with train1 test1 part 2}
+
+ recommendations <- pbapply::pbapply(test1, 2, function(x) RecommendByAbsoluteNN(set1, x, 20))# 20 would change for each k value tested
+# Applying the recommender algorithm 
+
+```
+
+```{r testing with train1 test1 part 3}
+
+rownames(recommendations) <- rownames(test_set)
+CV_1 <- reshape2::melt(recommendations)
+#Reshaping the recommendations data frame
+
+```
+
+```{r testing with train1 test1 part 4}
+
+train1[train1 > 0] <- 1
+#Making our original copy binary
+
+```
+
+```{r testing with train1 test1 part 5}
+
+rownames(train1) <- rownames(test_set)
+Key_1 <- reshape2::melt(train1)
+#Reshaping the original data frame
+
+```
+
+```{r testing with train1 test1 part 6}
+
+colnames(Key_1)[2] ="key"
+#Renaming value to key for combining
+
+colnames(CV_1)[3] ="rec"
+#Renaming value to rec for combining
+
+```
+
+```{r testing with train1 test1 part 7}
+
+Key_1$rec <- CV_1$rec 
+#Combining data frames
+
+```
+
+```{r testing with train1 test1 part 8}
+
+Key_1$same <- ifelse(Key_1$key==Key_1$rec,"Yes","No")
+#Finding how many we got correct by comparing the modified to original
+
+```
+
+```{r testing with train1 test1 part 9}
+
+CV_df[1,1] <- 1- round((length(which(Key_1$same == "No"))/ nrow(Key_1)), 4)
+# The first 1 in CV_df[1,1] would need to change to write the number in a new column.
+#Finding success rate and putting into a data frame
+
+```
+
+
+```{r testing with train2 test2 part 1}
+
+set.seed(123)
+
+   test2<-train2
+   for(i in 1:ncol(train2)){
+     for (j in 1:5){
+       fun <- runif(1, min= 1, max = 85)
+       while(train2[fun,i]==0){
+         fun <- runif(1, min= 1, max = 85)
+       }
+       test2[fun,i]=0
+     }
+   }
+# A loop finding random non-zero entries in the columns and changing them to zero.
+   
+```
+
+```{r testing with train2 test2 part 2}
+
+recommendations <- pbapply::pbapply(test2, 2, function(x) RecommendByAbsoluteNN(set2, x, 20)) #20 would change for each k value tested
+# Applying the recommender algorithm 
+
+```
+
+```{r testing with train2 test2 part 3}
+
+rownames(recommendations) <- rownames(test_set)
+CV_2 <- reshape2::melt(recommendations)
+#Reshaping the recommendations data frame
+
+```
+
+```{r testing with train2 test2 part 4}
+
+train2[train2 > 0] <- 1
+#Making our original copy binary
+
+```
+
+```{r testing with train2 test2 part 5}
+
+rownames(train2) <- rownames(test_set)
+Key_2 <- reshape2::melt(train2)
+#Reshaping the original data frame
+
+```
+
+```{r testing with train2 test2 part 6}
+
+colnames(Key_2)[2] ="key"
+#Renaming value to key for combining
+
+colnames(CV_2)[3] ="rec"
+#Renaming value to rec for combining
+
+```
+
+```{r testing with train2 test2 part 7}
+
+Key_2$rec <- CV_2$rec 
+#Combining data frames
+
+```
+
+```{r testing with train2 test2 part 8}
+
+Key_2$same <- ifelse(Key_2$key==Key_2$rec,"Yes","No")
+#Finding how many we got correct by comparing the modified to original
+
+```
+
+```{r testing with train2 test2 part 9}
+
+CV_df[1,2] <- 1- round((length(which(Key_1$same == "No"))/ nrow(Key_1)), 4)
+# The first 1 in CV_df [1,1]would need to change to write the number in a new column.
+#Finding success rate and putting into a data frame
+
+```
+
+```{r testing with train3 test3 part 1}
+
+set.seed(123)
+
+   test3<-train3
+   for(i in 1:ncol(train3)){
+     for (j in 1:5){
+       fun <- runif(1, min= 1, max = 85)
+       while(train3[fun,i]==0){
+         fun <- runif(1, min= 1, max = 85)
+       }
+       test3[fun,i]=0
+     }
+   }
+
+# A loop finding random non-zero entries in the columns and changing them to zero.
+
+```
+
+```{r testing with train3 test3 part 2}
+
+recommendations <- pbapply::pbapply(test3, 2, function(x) RecommendByAbsoluteNN(set3, x, 20)) #20 would change for each k value tested
+# Applying the recommender algorithm 
+
+```
+
+```{r testing with train3 test3 part 3}
+
+rownames(recommendations) <- rownames(test_set)
+CV_3 <- reshape2::melt(recommendations)
+#Reshaping the recommendations data frame
+
+```
+
+```{r testing with train3 test3 part 4}
+n  
+train3[train3 > 0] <- 1
+#Making our original copy binary
+
+```
+
+```{r testing with train3 test3 part 5}
+
+rownames(train3) <- rownames(test_set)
+Key_3 <- reshape2::melt(train3)
+#Reshaping the original data frame
+
+```
+
+```{r testing with train3 test3 part 6}
+
+colnames(Key_3)[2] ="key"
+#Renaming value to key for combining
+
+colnames(CV_3)[3] ="rec"
+#Renaming value to rec for combining
+
+```
+
+```{r testing with train3 test3 part 7}
+
+Key_3$rec <- CV_3$rec 
+#Combining data frames
+
+```
+
+```{r testing with train3 test3 part 8}
+
+ Key_3$same <- ifelse(Key_3$key==Key_3$rec,"Yes","No")
+#Finding how many we got correct by comparing the modified to original
+
+```
+
+```{r testing with train3 test3 part 9}
+
+CV_df[1,3] <- 1- round((length(which(Key_1$same == "No"))/ nrow(Key_1)), 4)
+# The first 1 in CV_df[1,1] would need to change to write the number in a new column.
+#Finding success rate and putting into a data frame
+
+```
+
+```{r testing with train4 test4 part 1}
+
+set.seed(123)
+
+   test4<-train4
+   for(i in 1:ncol(train4)){
+     for (j in 1:5){
+       fun <- runif(1, min= 1, max = 85)
+       while(train4[fun,i]==0){
+         fun <- runif(1, min= 1, max = 85)
+       }
+       test4[fun,i]=0
+     }
+   }
+# A loop finding random non-zero entries in the columns and changing them to zero.
+
+```
+
+```{r testing with train4 test4 part 2}
+
+recommendations <- pbapply::pbapply(test4, 2, function(x) RecommendByAbsoluteNN(set4, x, 20))#20 would change for each k value tested #Applying the recommender algorithm 
+
+```
+
+```{r testing with train4 test4 part 3}
+
+rownames(recommendations) <- rownames(test_set)
+CV_4 <- reshape2::melt(recommendations)
+#Reshaping the recommendations data frame
+
+```
+
+```{rtesting with train4 test4 part 4}
+
+train4[train4 > 0] <- 1
+#Making our original copy binary
+
+```
+
+```{r testing with train4 test4 part 5}
+
+rownames(train4) <- rownames(test_set)
+Key_4 <- reshape2::melt(train4)
+#Reshaping the original data frame
+
+```
+
+```{r testing with train4 test4 part 6}
+
+colnames(Key_4)[2] ="key"
+#Renaming value to key for combining
+
+colnames(CV_4)[3] ="rec"
+#Renaming value to rec for combining
+
+```
+
+```{r testing with train4 test4 part 7}
+
+Key_4$rec <- CV_4$rec 
+#Combining data frames
+
+```
+
+```{r testing with train4 test4 part 8}
+
+ Key_4$same <- ifelse(Key_4$key==Key_4$rec,"Yes","No")
+#Finding how many we got correct by comparing the modified to original
+
+```
+
+
+```{r testing with train4 test4 part 9}
+
+CV_df[1,4] <- 1- round((length(which(Key_1$same == "No"))/ nrow(Key_1)), 4)
+# The first 1 in CV_df[1,1] would need to change to write the number in a new column.
+#Finding success rate and putting into a data frame
+
+```
+
+```{r testing with train5 test5 part 1}
+
+set.seed(123)
+
+   test5<-train5
+   for(i in 1:ncol(train5)){
+     for (j in 1:5){
+       fun <- runif(1, min= 1, max = 85)
+       while(train5[fun,i]==0){
+         fun <- runif(1, min= 1, max = 85)
+       }
+       test5[fun,i]=0
+     }
+   }
+# A loop finding random non-zero entries in the columns and changing them to zero.
+   
+```
+
+```{r testing with train5 test5 part 2}
+
+recommendations <- pbapply::pbapply(test5, 2, function(x) RecommendByAbsoluteNN(set5, x, 20)) #20 would change for each k value tested
+#Applying the recommender algorithm 
+
+```
+
+```{r testing with train5 test5 part 3}
+
+rownames(recommendations) <- rownames(test_set)
+CV_5 <- reshape2::melt(recommendations)
+#Reshaping the recommendations data frame
+
+```
+
+```{r testing with train5 test5 part 4}
+
+train5[train5 > 0] <- 1
+#Making our original copy binary
+
+```
+
+```{r testing with train5 test5 part 5}
+
+rownames(train5) <- rownames(test_set)
+Key_5 <- reshape2::melt(train5)
+#Reshaping the original data frame
+
+```
+
+
+```{r testing with train5 test5 part 6}
+
+colnames(Key_5)[2] ="key"
+#Renaming value to key for combining
+
+colnames(CV_5)[3] ="rec"
+#Renaming value to rec for combining
+
+```
+
+```{r testing with train5 test5 part 7}
+
+Key_5$rec <- CV_5$rec 
+#Combining data frames
+
+```
+
+```{r testing with train5 test5 part 8}
+
+Key_5$same <- ifelse(Key_5$key==Key_5$rec,"Yes","No")
+#Finding how many we got correct by comparing the modified to original
+
+```
+
+```{r testing with train5 test5 part 9}
+
+CV_df[1,5] <- 1- round((length(which(Key_1$same == "No"))/ nrow(Key_1)), 4)
+# The first 1 in CV_df[1,1] would need to change to write the number in a new column.
+#Finding success rate and putting into a data frame
+
+```
+
+To find the code chunk below we ran the cross validation code above for k=20 to k=30 and then filled in the data frame with the results.
+
+```{r Cross Vaidation numbers pre calculated}
+
+CV_df <- data.frame(
+  k_20 = c(0.7993336, 0.8021102, 0.8002697, 0.7524487 ,0.8016897),
+  k_21 = c(0.7995557, 0.8018563, 0.8002697, 0.7524733, 0.752647 ),
+  k_22 = c(0.7491814, 0.7537446, 0.7508606, 0.7526338, 0.7528568),
+  k_23 = c(0.7500744, 0.753954, 0.7510586, 0.7528065,
+0.7527457),
+  k_24 = c(0.7502479, 0.7537446, 0.7516273, 0.7538295, 0.7534118),
+  k_25 = c(0.800357, 0.8025782, 0.8009123, 0.8025187, 0.8022371),
+  k_26 = c(0.8003967, 0.8025941, 0.8009123, 0.8025187, 0.8023244),
+  k_27 = c(0.8004443, 0.8028638, 0.8011265, 0.8023839, 0.8023878),
+  k_28 = c(0.8001745, 0.8028559, 0.8013566, 0.8025346, 0.8022451),
+  k_29 = c(0.8003332, 0.8029194, 0.801301, 0.8024791, 0.8024989),
+  k_30 = c(0.8003729, 0.8030622, 0.8013803, 0.8025108, 0.8025544))
+
+```
+
+```{r}
+#find the mean of each column
+
+CV_mean <- colMeans(CV_df) %>% #find the mean of each column
+  stack()
+
+ggplot(data= CV_mean, aes(x= ind,
+                          y= values,
+                          group = 1))+
+  geom_line(linetype = 'dashed') +
+  geom_point(shape = 16, size = 3, stroke = 2) +
+  labs(title = expression("Cosine Model Accuracy for K"[n]),
+       x = "K-value", 
+       y = "Accuracy (%)") +
+  scale_x_discrete(labels = c('20', '21', '22', '23',
+                              '24', '25', '26', '27',
+                              '28', '29','30')) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+
+```
+
+### Analysis of Cross Validation
+
+According to this graph we would probably have had our best success rate any where between 25 and 30. There might also be a chance that we might get better results with a k of 19 or 18.
+
+We realize that this is not the most efficient way of finding the cross validation with K-fold. In the end we were struggling with writing loops that would work and in decided to go a brute force method because of the deadline. The good thing about having a potential framework is that we come back to these and potentially make them into functions that we can run instead of the inefficient copy and paste method.
+
+## Conclusion
+
+In the end our best model was preprocessed with log(1+x), used Cosine distance, and a K of 25. We were not able to find a useful k optimization tool, so there could be a better k value out there. In fact according to our Cross Validation graph 18 or 19 might be a better k value and 26 to 30 would work just as well as 25. 
+
+With respects to normalization I think we have a good combination with log(1+x) and Cosine. Cosine was a good choice because it isn't heavily influenced by outliers which we learned we had a few. Finding a normalization that works well with Cosine is trial and error process. I feel like we tried a number of Cosine and normalizations combinations and found one that worked well enough. 
+
+In the future we could try a more systematic approach with increasing our k value and hopefully find an optimal (or at least close to optimal) k faster. I would also like to look into finding an optimal combination for Manhattan because we had some success early on. It would would be interesting to put our most optimized Cosine distance next to our most optimized Manhattan distance.
