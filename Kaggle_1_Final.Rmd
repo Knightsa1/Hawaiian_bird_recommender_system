@@ -907,4 +907,5 @@ a number of Cosine and normalizations combinations and found one that worked wel
 
 In the future we could try a more systematic approach with increasing our k value and hopefully find
 an optimal (or at least close to optimal) k faster. I would also like to look into finding an
-optimal combination for Manhattan because we had some success early on. It would would be interesting to put our most optimized Cosine distance next to our most optimized Manhattan distance.
+optimal combination for Manhattan because we had some success early on. It would would be
+interesting to put our most optimized Cosine distance next to our most optimized Manhattan distance.
