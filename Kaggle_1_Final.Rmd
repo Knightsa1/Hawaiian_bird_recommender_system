@@ -19,9 +19,13 @@ library(tidyverse)
 library(tinytex)
 
 ```
-Data is rows of birds that are located in Hawaii.  Columns are sites or areas that the bird has been spotted.  The data entries themselves are frequency or amount of birds that have been located in this specific location.
+Data is rows of birds that are located in Hawaii.  Columns are sites or 
+areas that the bird has been spotted.  The data entries themselves are 
+frequency or amount of birds that have been located in this specific location.
 
-In this chunk, we are loading in the data as CSV's and they turn into data frames in R.  We add row.names = 1 to remove the name of the birds as a column for calculations later on  
+In this chunk, we are loading in the data as CSV's and they turn into data 
+frames in R.  We add row.names = 1 to remove the name of the birds as a 
+column for calculations later on.
 
 ```{r loading data}
 
@@ -37,7 +41,9 @@ sample_submission <- read.csv("sample_submission.csv", row.names = 1)
 
 ## Exploratory Analysis
 
-Here we are checking to find NA's in the training and test data sets to see if we need to remove them for data pre-processing. We didn't find any NAs.
+Here we are checking to find NA's in the training and test data sets to 
+see if we need to remove them for data pre-processing. We didn't find 
+any NAs.
 
 ```{r finding NAs}
 
@@ -46,7 +52,8 @@ Here we are checking to find NA's in the training and test data sets to see if w
 
 ```
 
-We check the dimensions of our data frames to confirm that they should be 85X14382 and 85X6009 for the respective test and training data sets.
+We check the dimensions of our data frames to confirm that they should 
+be 85X14382 and 85X6009 for the respective test and training data sets.
 
 ```{r Pre-processing}
 
@@ -55,7 +62,8 @@ We check the dimensions of our data frames to confirm that they should be 85X143
 
 ```
 
-We verify that our data frame has the necessary variables for our calculations, this includes making sure all numeric entries are integers.
+We verify that our data frame has the necessary variables for our 
+calculations, this includes making sure all numeric entries are integers.
 
 ```{r finding variable types}
 
@@ -64,9 +72,13 @@ We verify that our data frame has the necessary variables for our calculations, 
 
 ``` 
 
-This block is checking to see if any blanks exist in the columns of our data set and temporarily set them to NA's so that we can do something about them in the later blocks.  We use for loops in this block to iterate through all the columns in our data set.
+This block is checking to see if any blanks exist in the columns of our data
+set and temporarily set them to NA's so that we can do something about them in 
+the later blocks.  We use for loops in this block to iterate through all the 
+columns in our data set.
 
-This code was used from geeks for geeks with the following link: https://www.geeksforgeeks.org/data-preprocessing-in-r/
+This code was used from geeks for geeks with the following link: 
+https://www.geeksforgeeks.org/data-preprocessing-in-r/
 
 ```{r changing blanks into NAs}
 
@@ -87,7 +99,9 @@ for (column in columns) {
 
 ```
 
-Here we check again after setting blanks to NAs to see if NA's present in both data sets.  We get the sum of the NA's to get the totals for the entire data set to verify the entire data sets. Since we get zero, no need to drop them!
+Here we check again after setting blanks to NAs to see if NA's present in both
+data sets.  We get the sum of the NA's to get the totals for the entire data 
+set to verify the entire data sets. Since we get zero, no need to drop them!
 
 ```{r rechecking NAs}
 
@@ -96,7 +110,9 @@ sum(is.na(test_set))
 
 
 ```
-This is to provide a quick summary of our sums for birds, it can display the minimum, mean, and maximum to quickly get a feel on the sheer number of birds present in the data set.
+This is to provide a quick summary of our sums for birds, it can display
+the minimum, mean, and maximum to quickly get a feel on the sheer number 
+of birds present in the data set.
 
 ```{r summary of data}
 
@@ -108,7 +124,8 @@ This is to provide a quick summary of our sums for birds, it can display the min
 
 ## Distances
 
-In this chunk, we calculate Manhattan distance, we make it a function so we can use it later, this code was used from geeks for geeks at the following URL:https://www.geeksforgeeks.org/how-to-calculate-manhattan-distance-in-r/
+In this chunk, we calculate Manhattan distance, we make it a function so
+we can use it later, this code was used from geeks for geeks at the following URL:https://www.geeksforgeeks.org/how-to-calculate-manhattan-distance-in-r/
 
 ```{r Manhattan Distance}
 
@@ -120,7 +137,8 @@ manhattanDistance <- function(vect1, vect2){
 
 ```
 
-In this chunk we calculated the Minkowski Distance, we make it a function so we can use it later.
+In this chunk we calculated the Minkowski Distance, we make it a function 
+so we can use it later.
 
 ```{r Minkowski Distance}
 # Minkowski Distance
@@ -132,7 +150,8 @@ minkowski <- function (x,y){
 
 ```
 
-In this chunk we calculated the Cosine Distance, we make it a function so we can use it later.
+In this chunk we calculated the Cosine Distance, we make it a function
+so we can use it later.
 
 ```{r Cosine Distance}
 
@@ -145,14 +164,26 @@ cosine_distance <- function(a,b){
 
 ### Analysis of Distance
 
-In the beginning we were having some success with the Manhattan Distance and we stayed there for awhile. We did switch to Euclidean distance for a while, but were getting worse results. Finally after some advice we tried Cosine distance. We weren't getting good results until we reworked the normalization of the data.  Our final best result was Cosine distance.
+In the beginning we were having some success with the Manhattan Distance 
+and we stayed there for awhile. We did switch to Euclidean distance for 
+a while, but were getting worse results. Finally after some advice we 
+tried Cosine distance. We weren't getting good results until we reworked 
+the normalization of the data.  Our final best result was Cosine distance.
 
-Personally I think that either Manhattan or Cosine would be appropriate for this question based on the scores we received.
+Personally I think that either Manhattan or Cosine would be appropriate for 
+this question based on the scores we received.
 
 ## Data Preprocessing
 
-Here, is where we pre-process our data, we utilize unit norm this takes each entry and divides by the column sum of the total entries.  This makes each entry of a column a percentage of each column.  Next, we use log scaling to continue to normalize the data into something that we can use for our calculations.  We make this a function to call and then run it on both our test and train data set.  
-We tried different combinations of these functions and found this one was this worked the best.
+Here, is where we pre-process our data, we utilize unit norm this takes each 
+entry and divides by the column sum of the total entries.  This makes each 
+entry of a column a percentage of each column.  Next, we use log scaling to 
+continue to normalize the data into something that we can use for our 
+calculations.  We make this a function to call and then run it on both our test 
+and train data set.  
+
+We tried different combinations of these functions and found this one was this 
+worked the best.
 
 ```{r attempt at unit norm}
 
@@ -169,9 +200,15 @@ We tried different combinations of these functions and found this one was this w
 
 ### Analysis of Pre-processing
 
-We tried a lot of different types of normalization. We started with just normalizing the data with x / sum(x) and log(1+x). Eventually we got help and we tried it with the suggestion of clipping the data. We tried every type of combination these normalizations to the point where we tried x / sum(x) and then clipping. In the end the best combination we were able to come up with was Cosine distance with a normalization of log(1+x).
+We tried a lot of different types of normalization. We started with just
+normalizing the data with x / sum(x) and log(1+x). Eventually we got help and 
+we tried it with the suggestion of clipping the data. We tried every type of 
+combination these normalizations to the point where we tried x / sum(x) and 
+then clipping. In the end the best combination we were able to come up with was 
+Cosine distance with a normalization of log(1+x).
 
-I think the best normalization for this project would be log(x+1). The other normalizations weren't working well for us no matter the combination.
+I think the best normalization for this project would be log(x+1). The other 
+normalizations weren't working well for us no matter the combination.
 
 ## Recomender Algorithm
 
@@ -207,14 +244,19 @@ I think the best normalization for this project would be log(x+1). The other nor
    return(recommendations)
  }
  
- recommendations <- pbapply::pbapply(norm_test, 2, function(x)  FUN =  RecommendByAbsoluteNN(norm_training, x, 25))
+ recommendations <- pbapply::pbapply(norm_test, 2, function(x)  
+FUN =  RecommendByAbsoluteNN(norm_training, x, 25))
 
 ```
 ### Analysis of Recomender Algorithm
 
-This is the final version of the RecommendByAbsoluteNN algorithm. We tried to implement weights into the function, but they didn't seem help our score. At one point we did get some help on implementing weights, but we didn't have time to include them. 
+This is the final version of the RecommendByAbsoluteNN algorithm. We tried to 
+implement weights into the function, but they didn't seem help our score. At one 
+point we did get some help on implementing weights, but we didn't have time to 
+include them. 
 
-I think that weights would definitely help create better model. I do wonder how it would effect the K value if at all.
+I think that weights would definitely help create better model. I do wonder how it 
+would effect the K value if at all.
 
 ```{r making and reshaping the recomendation}
 
@@ -234,7 +276,8 @@ I think that weights would definitely help create better model. I do wonder how 
 
 ## K Optimization
 
-This was a brute force attempt to try to find the best k. In the end we went with something else.
+This was a brute force attempt to try to find the best k. In the end we 
+went with something else.
 
 ```{r}
 
@@ -255,7 +298,8 @@ This was a brute force attempt to try to find the best k. In the end we went wit
 # countright = 0
 # 
 # for (i in 1:nrow(submission)){
-#   if((submission[i,3] == 1 & submission[i,4] >= 1)|| (submission[i,3] == 0 & submission[i,4] ==0)){
+#   if((submission[i,3] == 1 & submission[i,4] >= 1)|| (
+#       submission[i,3] == 0 & submission[i,4] ==0)){
 #     countright = countright + 1
 #   }
 # }
@@ -273,16 +317,41 @@ This was a brute force attempt to try to find the best k. In the end we went wit
 
 ### Analysis of Optimizing K
 
-Finding k was by far the hardest part of this project. At first we started at 5 emulating the idea of the 5 Hawaiian Islands. Then we moved up to a somewhat arbitrary 9 gave us our best results. Moving up a little bit to an 11 gave us worse results and we stayed a 9 for a while. 
+Finding k was by far the hardest part of this project. At first we started at 
+5 emulating the idea of the 5 Hawaiian Islands. Then we moved up to a somewhat 
+arbitrary 9 gave us our best results. Moving up a little bit to an 11 gave us 
+worse results and we stayed a 9 for a while. 
 
-We didn't seem to go anywhere for a while and we had this idea of being more systematic in our approach to finding the best K. Our idea was that our K could be anywhere between 1 and 85. We decided to start testing half way between 1 and 84 at 44 and test it there. We realized that this would be a brute force approach and we didn't want to waste all of our submissions on that. So we took the training set and split into a training and test set. We kept the original test and copied it. 
+We didn't seem to go anywhere for a while and we had this idea of being more 
+systematic in our approach to finding the best K. Our idea was that our K could 
+be anywhere between 1 and 85. We decided to start testing half way between 1 and 
+84 at 44 and test it there. We realized that this would be a brute force approach 
+and we didn't want to waste all of our submissions on that. So we took the 
+training set and split into a training and test set. We kept the original test and 
+copied it. 
 
-With the copy set we created a loop that would set five random non-zero column values to zero. We would then test the original set against the recommended copy and see how we did. The idea was to test the middle, middle + 1, and middle - 1 and move in the direction on the best results. To determine which k had a better out come we created a loop that looked at three values: counterror, countright, and missed_pos. Counterror counted the number of times when our algorithm should have made a recommendation, but didn't. Countright is when our algorithm made a recommendation when it should or didn't make a recommendation when it shouldn't. Finally missed_pos was when we should have made a recommendation, but didn't. So we would be looking for high number for countright and low numbers for counterror and missed_pos. We modified this from the idea of the binary search algorithm. From this algorithm we found a K value of 65.
+With the copy set we created a loop that would set five random non-zero column 
+values to zero. We would then test the original set against the recommended copy and 
+see how we did. The idea was to test the middle, middle + 1, and middle - 1 and move 
+in the direction on the best results. To determine which k had a better out come we 
+created a loop that looked at three values: counterror, countright, and missed_pos. 
+Counterror counted the number of times when our algorithm should have made a 
+recommendation, but didn't. Countright is when our algorithm made a recommendation 
+when it should or didn't make a recommendation when it shouldn't. Finally missed_pos 
+was when we should have made a recommendation, but didn't. So we would be looking for 
+high number for countright and low numbers for counterror and missed_pos. We modified 
+this from the idea of the binary search algorithm. From this algorithm we found a K 
+value of 65.
 
 
 ## Cross-Validation
 
-This code chunk is checking accuracy for K =1 to K = X this is done by utilizing a for loop.  This is calculated as a percentage.  We are using K-fold cross validation for our chosen method. This is was chosen method because it iterates over over a set number of K groups randomly.  We feel this provides the most accuracy for our Manhattan distance by using mean squared error on the observation that was held out and give an average for our performance.
+This code chunk is checking accuracy for K =1 to K = X this is done by utilizing a for 
+loop.  This is calculated as a percentage.  We are using K-fold cross validation for our 
+chosen method. This is was chosen method because it iterates over over a set number of K 
+groups randomly.  We feel this provides the most accuracy for our Manhattan distance by 
+using mean squared error on the observation that was held out and give an average for our
+performance.
 
 ```{r Cross-validation attempt 1}
 
@@ -304,10 +373,17 @@ This code chunk is checking accuracy for K =1 to K = X this is done by utilizing
 # }
 
 
-# plot(k.optm, type="b", xlab="K- Value",ylab="Accuracy level")  # to plot % accuracy wrt to k-value.  We are plotting the result of our K-fold cross validation to provide visual feedback.
+# plot(k.optm, type="b", xlab="K- Value",ylab="Accuracy level")  
+# to plot % accuracy wrt to k-value.  We are plotting the result of our K-fold cross validation 
+to provide visual feedback.
 ```
 
-The code above was an attempt a creating a loop to cross validate the model. The idea would be that it would loop through numbers for K (in this case 1 through 30) and test our model out to see the percentage of accuracy at each K. Ultimately this loop would take an incredibly long time to run. When we made the range smaller it seemed to be spitting out the same number again and again. In hindsight this code might have worked, but there might have not been much change in accuracy between K = 1 and K=2.
+The code above was an attempt a creating a loop to cross validate the model. The idea would be that
+it would loop through numbers for K (in this case 1 through 30) and test our model out to see the
+percentage of accuracy at each K. Ultimately this loop would take an incredibly long time to run.
+When we made the range smaller it seemed to be spitting out the same number again and again. In
+hindsight this code might have worked, but there might have not been much change in accuracy between
+K = 1 and K=2.
 
 ```{r randomly shuffling the data set}
  
@@ -373,7 +449,8 @@ set.seed(123)
 
 ```{r testing with train1 test1 part 2}
 
- recommendations <- pbapply::pbapply(test1, 2, function(x) RecommendByAbsoluteNN(set1, x, 20))# 20 would change for each k value tested
+ recommendations <- pbapply::pbapply(test1, 2, function(x) RecommendByAbsoluteNN(set1, x, 20))
+# 20 would change for each k value tested
 # Applying the recommender algorithm 
 
 ```
@@ -454,7 +531,8 @@ set.seed(123)
 
 ```{r testing with train2 test2 part 2}
 
-recommendations <- pbapply::pbapply(test2, 2, function(x) RecommendByAbsoluteNN(set2, x, 20)) #20 would change for each k value tested
+recommendations <- pbapply::pbapply(test2, 2, function(x) RecommendByAbsoluteNN(set2, x, 20)) 
+#20 would change for each k value tested
 # Applying the recommender algorithm 
 
 ```
@@ -535,7 +613,8 @@ set.seed(123)
 
 ```{r testing with train3 test3 part 2}
 
-recommendations <- pbapply::pbapply(test3, 2, function(x) RecommendByAbsoluteNN(set3, x, 20)) #20 would change for each k value tested
+recommendations <- pbapply::pbapply(test3, 2, function(x) RecommendByAbsoluteNN(set3, x, 20)) 
+#20 would change for each k value tested
 # Applying the recommender algorithm 
 
 ```
@@ -615,7 +694,8 @@ set.seed(123)
 
 ```{r testing with train4 test4 part 2}
 
-recommendations <- pbapply::pbapply(test4, 2, function(x) RecommendByAbsoluteNN(set4, x, 20))#20 would change for each k value tested #Applying the recommender algorithm 
+recommendations <- pbapply::pbapply(test4, 2, function(x) RecommendByAbsoluteNN(set4, x, 20))
+#20 would change for each k value tested #Applying the recommender algorithm 
 
 ```
 
@@ -695,7 +775,8 @@ set.seed(123)
 
 ```{r testing with train5 test5 part 2}
 
-recommendations <- pbapply::pbapply(test5, 2, function(x) RecommendByAbsoluteNN(set5, x, 20)) #20 would change for each k value tested
+recommendations <- pbapply::pbapply(test5, 2, function(x) RecommendByAbsoluteNN(set5, x, 20)) 
+#20 would change for each k value tested
 #Applying the recommender algorithm 
 
 ```
@@ -756,7 +837,8 @@ CV_df[1,5] <- 1- round((length(which(Key_1$same == "No"))/ nrow(Key_1)), 4)
 
 ```
 
-To find the code chunk below we ran the cross validation code above for k=20 to k=30 and then filled in the data frame with the results.
+To find the code chunk below we ran the cross validation code above for k=20 to k=30 and then filled
+in the data frame with the results.
 
 ```{r Cross Vaidation numbers pre calculated}
 
@@ -803,12 +885,24 @@ ggplot(data= CV_mean, aes(x= ind,
 
 According to this graph we would probably have had our best success rate any where between 25 and 30. There might also be a chance that we might get better results with a k of 19 or 18.
 
-We realize that this is not the most efficient way of finding the cross validation with K-fold. In the end we were struggling with writing loops that would work and in decided to go a brute force method because of the deadline. The good thing about having a potential framework is that we come back to these and potentially make them into functions that we can run instead of the inefficient copy and paste method.
+We realize that this is not the most efficient way of finding the cross validation with K-fold. In
+the end we were struggling with writing loops that would work and in decided to go a brute force
+method because of the deadline. The good thing about having a potential framework is that we come
+back to these and potentially make them into functions that we can run instead of the inefficient
+copy and paste method.
 
 ## Conclusion
 
-In the end our best model was preprocessed with log(1+x), used Cosine distance, and a K of 25. We were not able to find a useful k optimization tool, so there could be a better k value out there. In fact according to our Cross Validation graph 18 or 19 might be a better k value and 26 to 30 would work just as well as 25. 
+In the end our best model was preprocessed with log(1+x), used Cosine distance, and a K of 25. We
+were not able to find a useful k optimization tool, so there could be a better k value out there. In
+fact according to our Cross Validation graph 18 or 19 might be a better k value and 26 to 30 would
+work just as well as 25. 
 
-With respects to normalization I think we have a good combination with log(1+x) and Cosine. Cosine was a good choice because it isn't heavily influenced by outliers which we learned we had a few. Finding a normalization that works well with Cosine is trial and error process. I feel like we tried a number of Cosine and normalizations combinations and found one that worked well enough. 
+With respects to normalization I think we have a good combination with log(1+x) and Cosine. Cosine
+was a good choice because it isn't heavily influenced by outliers which we learned we had a few.
+Finding a normalization that works well with Cosine is trial and error process. I feel like we tried
+a number of Cosine and normalizations combinations and found one that worked well enough. 
 
-In the future we could try a more systematic approach with increasing our k value and hopefully find an optimal (or at least close to optimal) k faster. I would also like to look into finding an optimal combination for Manhattan because we had some success early on. It would would be interesting to put our most optimized Cosine distance next to our most optimized Manhattan distance.
+In the future we could try a more systematic approach with increasing our k value and hopefully find
+an optimal (or at least close to optimal) k faster. I would also like to look into finding an
+optimal combination for Manhattan because we had some success early on. It would would be interesting to put our most optimized Cosine distance next to our most optimized Manhattan distance.
