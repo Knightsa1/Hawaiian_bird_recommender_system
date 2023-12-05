@@ -125,7 +125,8 @@ of birds present in the data set.
 ## Distances
 
 In this chunk, we calculate Manhattan distance, we make it a function so
-we can use it later, this code was used from geeks for geeks at the following URL:https://www.geeksforgeeks.org/how-to-calculate-manhattan-distance-in-r/
+we can use it later, this code was used from geeks for geeks at the following
+URL:https://www.geeksforgeeks.org/how-to-calculate-manhattan-distance-in-r/
 
 ```{r Manhattan Distance}
 
@@ -883,7 +884,8 @@ ggplot(data= CV_mean, aes(x= ind,
 
 ### Analysis of Cross Validation
 
-According to this graph we would probably have had our best success rate any where between 25 and 30. There might also be a chance that we might get better results with a k of 19 or 18.
+According to this graph we would probably have had our best success rate any where between 25 and
+30. There might also be a chance that we might get better results with a k of 19 or 18.
 
 We realize that this is not the most efficient way of finding the cross validation with K-fold. In
 the end we were struggling with writing loops that would work and in decided to go a brute force
